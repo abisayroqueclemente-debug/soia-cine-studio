@@ -1,0 +1,45 @@
+name: SOIA | Diagnostico del entorno
+
+on:
+  push:
+    branches:
+      - desarrollo-soia
+    paths:
+      - scripts/soia_doctor.py
+      - .github/workflows/soia-diagnostics.yml
+      - docs/SOIA-START.md
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnostico:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Obtener codigo
+        uses: actions/checkout@v4
+
+      - name: Preparar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Preparar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Comprobar estructura
+        run: |
+          test -f LICENSE
+          test -f SKILL.md
+          test -f scripts/capture.mjs
+          test -f scripts/soia_doctor.py
+
+      - name: Diagnosticar dependencias
+        run: |
+          python3 scripts/soia_doctor.py | tee soia-diagnostics.txt
+          cat soia-diagnostics.txt >> "$GITHUB_STEP_SUMMARY"
+          python3 scripts/soia_doctor.py --strict
