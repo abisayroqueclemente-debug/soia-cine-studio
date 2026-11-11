@@ -12,12 +12,16 @@ import sys
 
 def version(executable):
     try:
-        result = subprocess.run(
-            [executable, "--version"], capture_output=True, text=True,
-            timeout=10, check=False,
-        )
-        output = (result.stdout or result.stderr).strip().splitlines()
-        return output[0] if result.returncode == 0 and output else None
+        # FFmpeg/FFprobe usan -version, no --version. Probamos ambas formas.
+        for flag in ("--version", "-version"):
+            result = subprocess.run(
+                [executable, flag], capture_output=True, text=True,
+                timeout=10, check=False,
+            )
+            output = (result.stdout or result.stderr).strip().splitlines()
+            if result.returncode == 0 and output:
+                return output[0]
+        return None
     except (OSError, subprocess.TimeoutExpired):
         return None
 

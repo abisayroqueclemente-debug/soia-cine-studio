@@ -1,0 +1,59 @@
+name: SOIA | Primer MP4
+
+on:
+  push:
+    branches: [desarrollo-soia]
+    paths:
+      - scripts/soia_doctor.py
+      - demos/soia-smoke.html
+      - .github/workflows/soia-render-smoke.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  render-smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Preparar Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Instalar FFmpeg y FFprobe
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+
+      - name: Verificar render determinista
+        run: |
+          node scripts/capture.mjs --url demos/soia-smoke.html --verify --params "w=640&h=360"
+
+      - name: Renderizar video MP4
+        run: |
+          mkdir -p renders
+          node scripts/capture.mjs --url demos/soia-smoke.html --video renders/soia-primer-render.mp4 --params "w=640&h=360" --crf 23 --maxrate 2M
+
+      - name: Validar archivo MP4
+        run: |
+          test -s renders/soia-primer-render.mp4
+          ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,width,height -of default=noprint_wrappers=1 renders/soia-primer-render.mp4 | tee renders/technical-report.txt
+          grep -q '^codec_name=h264$' renders/technical-report.txt
+          grep -q '^width=640$' renders/technical-report.txt
+          grep -q '^height=360$' renders/technical-report.txt
+          ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1 renders/soia-primer-render.mp4 >> renders/technical-report.txt
+          cat renders/technical-report.txt >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Descargar video desde GitHub Actions
+        uses: actions/upload-artifact@v4
+        with:
+          name: SOIA-primer-MP4
+          path: |
+            renders/soia-primer-render.mp4
+            renders/technical-report.txt
+          retention-days: 7
