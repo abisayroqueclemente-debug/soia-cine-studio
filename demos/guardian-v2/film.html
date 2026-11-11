@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>El Guardián Oscuro — La campana sellada | SOIA v2</title>
+<style>html,body{margin:0;background:#05060b;overflow:hidden}canvas{display:block;max-width:100vw;max-height:100vh;margin:auto}</style>
+</head><body><canvas id="film"></canvas><script>
+"use strict";
+// SOIA CINE STUDIO — EL GUARDIÁN OSCURO V2.
+// Original deterministic Canvas 2D animation: five *different* cinematic shots.
+// No remote assets, third-party footage or wall-clock dependence.
+const p=new URLSearchParams(location.search);
+const W=Math.max(180,Math.min(1080,Number(p.get("w"))||540));
+const H=Math.max(320,Math.min(1920,Number(p.get("h"))||960));
+const fps=24, duration=25, frames=fps*duration;
+const C=document.getElementById("film");C.width=W;C.height=H;
+const c=C.getContext("2d",{alpha:false});
+const T=Math.PI*2,cl=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const sm=x=>{x=cl(x);return x*x*(3-2*x)};
+const h=n=>{let z=Math.sin(n*71.319+83.17)*43758.5453123;return z-Math.floor(z)};
+function poly(P,col,stroke,lw=1){
+ c.beginPath();c.moveTo(P[0][0],P[0][1]);for(let i=1;i<P.length;i++)c.lineTo(P[i][0],P[i][1]);c.closePath();
+ if(col){c.fillStyle=col;c.fill()}if(stroke){c.strokeStyle=stroke;c.lineWidth=lw;c.stroke()}
+}
+function ln(P,color,width=1){c.beginPath();c.moveTo(P[0][0],P[0][1]);for(let i=1;i<P.length;i++)c.lineTo(P[i][0],P[i][1]);c.strokeStyle=color;c.lineWidth=width;c.stroke()}
+function grad(x,y,r,a,b){
+ const g=c.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,a);g.addColorStop(1,b);return g;
+}
+function glow(x,y,rx,ry,a,b){
+ c.save();c.translate(x,y);c.scale(rx,ry);
+ const g=c.createRadialGradient(0,0,.015,0,0,1);g.addColorStop(0,a);g.addColorStop(1,b);
+ c.fillStyle=g;c.beginPath();c.arc(0,0,1,0,T);c.fill();c.restore();
+}
+function linear(x,y,x2,y2,stops){
+ const g=c.createLinearGradient(x,y,x2,y2);for(const a of stops)g.addColorStop(a[0],a[1]);return g;
+}
+function rect(x,y,w,h,col){c.fillStyle=col;c.fillRect(x,y,w,h)}
+function arch(x,y,w,hei,col,stroke,lw=1){
+ c.beginPath();c.moveTo(x-w/2,y+hei);c.lineTo(x-w/2,y+hei*.3);
+ c.quadraticCurveTo(x-w*.46,y+hei*.10,x,y);
+ c.quadraticCurveTo(x+w*.46,y+hei*.10,x+w/2,y+hei*.3);
+ c.lineTo(x+w/2,y+hei);c.closePath();
+ if(col){c.fillStyle=col;c.fill()}if(stroke){c.strokeStyle=stroke;c.lineWidth=lw;c.stroke()}
+}
+function camera(x,y,z,tilt=0){
+ c.translate(270,480);c.rotate(tilt);c.scale(z,z);c.translate(-x,-y);
+}
+function flecks(t,amount=70,mode=0){
+ for(let i=0;i<amount;i++){
+  let z=.4+2.1*h(30+i),xx=((h(i+110)*670)+Math.sin(t*.65+i*5)*z*15+540)%540;
+  let yy=((h(i+170)*1180)-t*(10+12*z)+1920)%960;
+  let a=(.13+.26*h(i+310))*(mode?1.8:1);
+  c.fillStyle="rgba(235,177,97,"+a+")";c.beginPath();c.arc(xx,yy,.5+z*.46,0,T);c.fill();
+ }
+}
+function fog(t,power=.08){
+ for(let i=0;i<5;i++){
+  glow(70+i*116+Math.sin(t*.29+i)*42,735+i*40,190,68,
+      "rgba(177,175,172,"+power+")","rgba(90,96,110,0)");
+ }
+}
+function frameWalls(t){
+ rect(0,0,540,960,linear(0,0,0,960,[[0,"#080c17"],[.55,"#0b1320"],[1,"#110d16"]]));
+ glow(270,444,265,480,"rgba(64,94,114,.20)","rgba(8,9,15,0)");
+ for(let x of [0,462]){
+   rect(x,0,78,960,linear(x,0,x+78,0,[[0,"#0c101a"],[.52,"#191b28"],[1,"#070b14"]]));
+   for(let y=0;y<960;y+=74){
+    ln([[x,y+8],[x+78,y+14]],"rgba(179,155,116,.11)");
+    ln([[x+37,y+13],[x+37,y+79]],"rgba(148,136,115,.07)");
+   }
+ }
+ for(let i=0;i<4;i++){
+  let y=20+i*163;
+  c.beginPath();c.moveTo(0,y+210);c.bezierCurveTo(120,y-32,194,y-60,270,y-74);
+  c.bezierCurveTo(355,y-60,429,y-32,540,y+210);
+  c.strokeStyle="#0d111b";c.lineWidth=16;c.stroke();
+  c.strokeStyle="rgba(181,151,101,.20)";c.lineWidth=1.5;c.stroke();
+ }
+ arch(270,230,240,530,"#03050b","rgba(166,127,78,.42)",10);
+ arch(270,247,211,515,"#0a101c","rgba(204,151,83,.20)",2);
+}
+function candle(x,y,t,id){
+ const lit=1-sm((t-(id*1.0+1.65))/.35);
+ c.save();c.translate(x,y);
+ rect(-6,-44,12,60,"#262029");rect(-4,-91,8,47,"#b9a28a");
+ ln([[0,-91],[0,-98]],"#34252a",2);
+ if(lit>.01){
+  const dx=4*Math.sin(t*16+id);
+  glow(dx,-103,34,73,"rgba(246,137,46,"+(.31*lit)+")","rgba(242,112,47,0)");
+  poly([[dx,-100],[dx-7,-109],[dx,-127-4*Math.sin(t*7+id)],[dx+8,-109]],"rgba(247,180,74,"+lit+")");
+ }
+ c.restore();
+}
+function bellScene(u,t){
+ c.save();camera(270+8*Math.sin(u*.33),420-u*4,1.04+.055*sm(u/5),-.013*Math.sin(u*.29));
+ rect(0,0,540,960,linear(0,0,0,960,[[0,"#070c15"],[.5,"#1c1a20"],[1,"#07070e"]]));
+ glow(300,324,255,355,"rgba(236,169,90,.18)","rgba(158,84,50,0)");
+ // The high belfry and its exterior blue-grey moonlight.
+ arch(270,100,330,710,"#051323","#3b3b49",21);
+ arch(270,120,294,682,linear(0,130,0,815,[[0,"#1c2c3a"],[.53,"#0e1621"],[1,"#070a12"]]),"rgba(214,175,118,.31)",4);
+ glow(312,310,160,360,"rgba(113,147,166,.28)","rgba(40,42,64,0)");
+ c.save();c.globalAlpha=.08;rect(212,117,24,700,"#d2b785");rect(321,117,14,690,"#e5cc97");c.restore();
+ for(let i=0;i<8;i++){let y=145+i*95;ln([[55,y],[485,y+6]],"rgba(168,135,95,.09)",2)}
+ rect(72,0,21,960,"#131421");rect(448,0,21,960,"#131421");
+ poly([[0,795],[131,755],[180,960],[0,960]],"#080b13");
+ poly([[540,795],[409,755],[359,960],[540,960]],"#080b13");
+ // Two asymmetric ropes and the slowly SWINGING bell.
+ ln([[270,88],[270,257]],"rgba(180,154,108,.64)",7);
+ let angle=.20*Math.sin((u-.12)*2.35)*Math.exp(-u*.115);
+ c.save();c.translate(270,251);c.rotate(angle);
+ poly([[-14,-12],[14,-12],[18,24],[-18,24]],"#3b302b","#bb8e59",2);
+ rect(-5,12,10,56,"#4e3d32");
+ const b=linear(-110,140,122,140,[[0,"#34221f"],[.16,"#90623f"],[.49,"#d3a96b"],[.72,"#705139"],[1,"#2e2021"]]);
+ c.fillStyle=b;c.beginPath();c.moveTo(-73,31);c.quadraticCurveTo(-62,79,-82,222);c.quadraticCurveTo(-96,266,-113,286);
+ c.quadraticCurveTo(0,315,113,286);c.quadraticCurveTo(96,266,82,222);c.quadraticCurveTo(62,79,73,31);
+ c.quadraticCurveTo(0,11,-73,31);c.fill();
+ c.strokeStyle="rgba(255,196,110,.78)";c.lineWidth=4;c.stroke();
+ c.strokeStyle="rgba(59,35,31,.48)";c.lineWidth=7;
+ for(let y of [79,113,257]){c.beginPath();c.ellipse(0,y,79+Math.sin(y)*4,7,0,0,Math.PI);c.stroke()}
+ glow(-29,112,30,180,"rgba(243,190,116,.16)","rgba(243,190,116,0)");
+ c.fillStyle="#4c3326";c.beginPath();c.ellipse(0,281,27,29,0,0,T);c.fill();
+ c.fillStyle="#b58f58";c.beginPath();c.ellipse(0,304,12,14,0,0,T);c.fill();
+ c.restore();
+ // Traveling shafts of moonlight and dust.
+ poly([[177,240],[270,110],[430,960],[220,960]],"rgba(161,175,166,.042)");
+ flecks(t,74);
+ c.restore();
+}
+function tombScene(u,t){
+ c.save();camera(270,585+u*13,1.06+.12*sm(u/5),.012*Math.sin(u*.27));
+ frameWalls(t);
+ arch(270,287,286,505,"#02060d","rgba(187,137,68,.47)",9);
+ for(let i=0;i<11;i++){
+  let y=412+i*28;ln([[146,y],[394,y]],"rgba(152,123,88,.09)");
+ }
+ // Slab, top surface, granite side face and carved runes in perspective.
+ poly([[85,662],[455,662],[516,906],[24,906]],"#110f15","#68513c",6);
+ poly([[87,665],[454,665],[465,700],[74,700]],"#2a2424","#a3885e",3);
+ poly([[87,665],[455,665],[492,876],[49,876]],linear(260,665,260,876,[[0,"#333038"],[.48,"#24202b"],[1,"#17151d"]]),"rgba(218,177,104,.65)",3);
+ for(let k=0;k<18;k++){
+   let yy=700+k*9;ln([[90-k*2,yy],[450+k*2,yy+6]],"rgba(182,165,130,.07)");
+ }
+ // Seal's luminous circle slowly fractures.
+ let br=sm((u-1.3)/2.6);
+ glow(270,765,143,88,"rgba(255,168,67,"+(.1+br*.22)+")","rgba(255,161,55,0)");
+ c.save();c.translate(270,767);c.scale(1,.57);
+ c.strokeStyle="rgba(232,172,87,"+(.37+br*.5)+")";c.lineWidth=5;c.beginPath();c.arc(0,0,83,0,T);c.stroke();
+ c.lineWidth=2;
+ for(let i=0;i<9;i++){
+  let a=i*T/9+u*.04;
+  ln([[Math.cos(a)*61,Math.sin(a)*61],[Math.cos(a)*79,Math.sin(a)*79]],"rgba(253,201,117,"+(.3+br*.64)+")",3);
+ }
+ c.strokeStyle="rgba(255,208,115,"+br+")";
+ c.beginPath();c.moveTo(0,-53);c.lineTo(0,51);c.moveTo(-43,0);c.lineTo(43,0);c.stroke();
+ c.restore();
+ for(let j=0;j<8;j++){
+   let v=j*1.37,crack=br*(25+j*3);
+   let x=270+Math.cos(v)*81,y=765+Math.sin(v)*47;
+   ln([[x,y],[x+Math.cos(v)*crack,y+Math.sin(v)*crack*.75],[x+Math.cos(v+.25)*crack*1.7,y+Math.sin(v+.25)*crack]],"rgba(242,157,68,"+br+")",1.9);
+ }
+ // Rift emerging behind the stone.
+ glow(270,618,120,250,"rgba(230,120,43,"+(br*.20)+")","rgba(215,102,26,0)");
+ fog(t,.09);flecks(t,90,1);
+ c.restore();
+}
+function cloakFigure(u,t){
+ let sway=Math.sin(t*.64)*3;
+ c.save();c.translate(sway,0);
+ glow(270,635,180,300,"rgba(189,111,44,.17)","rgba(0,0,0,0)");
+ const cape=linear(150,570,390,952,[[0,"#171b26"],[.36,"#050610"],[.79,"#18131b"],[1,"#090a12"]]);
+ c.fillStyle=cape;c.beginPath();c.moveTo(229,552);
+ c.bezierCurveTo(168,564,146,643,135,744);
+ c.bezierCurveTo(122,841,84,925,87,1008);
+ c.lineTo(454,1008);c.bezierCurveTo(454,914,420,824,405,736);
+ c.bezierCurveTo(393,636,365,565,314,552);c.closePath();c.fill();
+ // Sculptural cloth folds.
+ c.lineCap="round";
+ for(let d of [-1,1]){
+  c.strokeStyle="rgba(100,89,94,.20)";c.lineWidth=18;
+  c.beginPath();c.moveTo(270+d*51,597);c.bezierCurveTo(260+d*73,756,280+d*111,862,270+d*142,980);c.stroke();
+  c.strokeStyle="#916a3b";c.lineWidth=4;
+  c.beginPath();c.moveTo(270+d*72,579);c.bezierCurveTo(270+d*91,738,270+d*106,850,270+d*147,981);c.stroke();
+  c.strokeStyle="rgba(241,179,88,.68)";c.lineWidth=1.5;c.stroke();
+ }
+ // Stole with repeated sigils.
+ for(let d of [-1,1]){
+  let x=270+d*25;
+  poly([[x-10,600],[x+10,600],[x+18,952],[x-15,966]],"#21141d","#916a40",2);
+  for(let k=0;k<9;k++){
+   let y=630+k*35;
+   c.strokeStyle="rgba(227,170,83,.69)";c.lineWidth=1.4;
+   c.beginPath();c.moveTo(x,y-8);c.lineTo(x+7,y);c.lineTo(x,y+8);c.lineTo(x-7,y);c.closePath();c.stroke();
+  }
+ }
+ // Face: no nose or skin, pure masked shadow.
+ glow(270,537,56,83,"rgba(135,75,45,.11)","rgba(0,0,0,0)");
+ c.fillStyle="#030409";c.beginPath();c.ellipse(270,552,45,64,0,0,T);c.fill();
+ // Tall gold-embroidered black mitre.
+ poly([[218,553],[212,479],[228,434],[270,354],[313,434],[328,479],[322,553],[270,578]],
+      linear(211,385,326,565,[[0,"#202131"],[.38,"#090b14"],[.64,"#191723"],[1,"#09080e"]]),"#ca9255",4.5);
+ ln([[270,366],[270,544]],"rgba(243,186,99,.67)",2.5);
+ ln([[230,475],[310,475]],"rgba(243,186,99,.67)",2);
+ ln([[240,445],[270,409],[300,445]],"rgba(229,174,91,.43)",1.5);
+ ln([[270,425],[270,460]],"#e5aa63",3);
+ ln([[255,443],[285,443]],"#e5aa63",3);
+ glow(270,424,19,29,"rgba(236,164,76,.14)","rgba(0,0,0,0)");
+ // Dark gauntlets grasp a genuine curved staff.
+ c.strokeStyle="#8f6b3b";c.lineWidth=12;c.beginPath();c.moveTo(384,1020);c.lineTo(364,565);c.stroke();
+ c.strokeStyle="#e0ac62";c.lineWidth=3;c.stroke();
+ c.beginPath();c.arc(364,536,29,-1.05,Math.PI*1.55);c.lineWidth=6;c.stroke();
+ c.beginPath();c.arc(363,538,12,-.9,Math.PI*.95);c.lineWidth=4;c.stroke();
+ c.fillStyle="#22202a";c.beginPath();c.ellipse(350,702,22,35,.25,0,T);c.fill();
+ for(let k=0;k<3;k++){
+  ln([[350+k*4,684],[351+k*4,711]],"rgba(194,142,84,.36)",2);
+ }
+ c.restore();
+}
+function guardianScene(u,t){
+ c.save();camera(270,585-u*10,1.02+.17*sm(u/5),-.015+.019*sm(u/5));
+ frameWalls(t);
+ glow(270,423,160,170,"rgba(207,132,64,.25)","rgba(159,72,30,0)");
+ c.strokeStyle="rgba(233,185,103,.49)";c.lineWidth=4;c.beginPath();c.arc(270,430,104,0,T);c.stroke();
+ for(let i=0;i<12;i++){
+  let a=i*T/12;ln([[270+Math.cos(a)*39,430+Math.sin(a)*39],
+  [270+Math.cos(a)*100,430+Math.sin(a)*100]],"rgba(197,147,81,.30)",2);
+ }
+ cloakFigure(u,t);
+ flecks(t,85);fog(t,.06);
+ c.restore();
+}
+function portalScene(u,t){
+ c.save();camera(270,540,1.0+.16*sm(u/5),0.008*Math.sin(u*.9));
+ frameWalls(t);
+ const amt=sm((u-1.1)/3.5);
+ // Architectural jambs and giant double doors actually OPEN.
+ arch(270,170,326,647,"#03050a","rgba(164,123,68,.61)",17);
+ glow(270,511,135*amt+20,440,"rgba(250,168,79,"+(.5*amt)+")","rgba(247,136,61,0)");
+ glow(270,533,78*amt+9,365,"rgba(247,232,159,"+(.28*amt)+")","rgba(249,174,80,0)");
+ const off=amt*137;
+ c.save();c.translate(-off,0);
+ poly([[108,346],[270,346],[270,813],[108,813]],linear(115,346,268,346,[[0,"#12131d"],[.7,"#2c2427"],[1,"#090b15"]]),"#a47c4d",5);
+ for(let k=0;k<4;k++){let y=407+k*95;ln([[128,y],[254,y]],"rgba(196,147,85,.34)",2);ln([[128,y+63],[254,y+63]],"rgba(171,127,68,.18)",1)}
+ poly([[173,534],[197,509],[222,534],[197,559]],"rgba(150,105,53,.46)");
+ c.restore();
+ c.save();c.translate(off,0);
+ poly([[270,346],[432,346],[432,813],[270,813]],linear(270,346,425,346,[[0,"#090b15"],[.3,"#2a2427"],[1,"#12131d"]]),"#a47c4d",5);
+ for(let k=0;k<4;k++){let y=407+k*95;ln([[286,y],[412,y]],"rgba(196,147,85,.34)",2);ln([[286,y+63],[412,y+63]],"rgba(171,127,68,.18)",1)}
+ poly([[318,534],[343,509],[365,534],[343,559]],"rgba(150,105,53,.46)");
+ c.restore();
+ // Opening produces shafts, slowly moving smoke and long golden streaks.
+ if(amt>0){
+  c.globalAlpha=amt*.32;
+  poly([[270,260],[280,260],[530,940],[8,940]],linear(270,260,280,940,[[0,"rgba(251,201,124,.54)"],[1,"rgba(227,117,39,0)"]]));
+  c.globalAlpha=1;
+ }
+ fog(t,.13+amt*.07);
+ for(let i=0;i<5;i++)candle(77+i*96,825+Math.sin(i*3)*17,u,i);
+ flecks(t,125,1);
+ c.restore();
+}
+function eyesScene(u,t){
+ c.save();camera(270,479,1.0+.17*sm(u/5),.004*Math.sin(u*.6));
+ rect(0,0,540,960,linear(0,0,540,960,[[0,"#030407"],[.55,"#0d0c16"],[1,"#020308"]]));
+ glow(270,490,300,420,"rgba(103,58,49,.22)","rgba(0,0,0,0)");
+ // Massive intimate mitre and central symbol: a distinct CLOSE UP.
+ poly([[12,710],[0,492],[98,332],[270,114],[441,332],[540,492],[528,710],[270,792]],
+  linear(48,280,500,720,[[0,"#242232"],[.2,"#0a0c15"],[.6,"#18121c"],[1,"#04050b"]]),"#ad7a41",8);
+ ln([[270,146],[270,518]],"rgba(228,163,79,.72)",5);
+ ln([[107,452],[432,452]],"rgba(232,178,102,.47)",4);
+ ln([[270,252],[270,340]],"#edaa5d",5);
+ ln([[239,299],[301,299]],"#edaa5d",5);
+ // Dark face inside mitre, slowly revealed.
+ c.fillStyle="#010205";c.beginPath();c.ellipse(270,588,151,165,0,0,T);c.fill();
+ const eyes=sm((u-1.3)/1.55)*(1-sm((u-4.5)/.43));
+ for(let d of [-1,1]){
+  const x=270+d*74,yy=567;
+  glow(x,yy,66,35,"rgba(250,165,48,"+(.52*eyes)+")","rgba(250,117,35,0)");
+  c.save();c.globalAlpha=eyes;
+  poly([[x-36,yy-8],[x+25,yy-3],[x+32,yy+4],[x-26,yy+6]],"#f8bd68");
+  rect(x-23,yy-4,42,4,"#fff0a4");
+  c.restore();
+ }
+ if(u>3.2){
+  let a=sm((u-3.2)/.8);
+  glow(270,720,200,140,"rgba(180,67,50,"+(.21*a)+")","rgba(0,0,0,0)");
+ }
+ flecks(t,45);
+ c.restore();
+}
+const shots=[bellScene,tombScene,guardianScene,portalScene,eyesScene];
+const script=[
+ ["NADIE LA HABÍA TOCADO.","PERO LA CAMPANA SONÓ."],
+ ["BAJO LA CATEDRAL","DESPERTÓ UNA TUMBA."],
+ ["ÉL CONOCÍA LA SEÑAL.","EL GUARDIÁN HABÍA VUELTO."],
+ ["LA PUERTA SE ABRIÓ.","ALGO ESPERABA DENTRO."],
+ ["¿TÚ HABRÍAS ENTRADO?","EL GUARDIÁN OSCURO"]
+];
+function storytelling(index, u){
+ const a=sm((u-.27)/.5)*(1-sm((u-4.45)/.36));
+ if(a<=0)return;
+ c.save();c.globalAlpha=a;
+ rect(0,0,540,170,linear(0,0,0,170,[[0,"rgba(3,5,13,.89)"],[1,"rgba(3,5,13,0)"]]));
+ rect(0,690,540,230,linear(0,690,0,910,[[0,"rgba(3,4,10,0)"],[.5,"rgba(3,4,10,.78)"],[1,"rgba(3,4,10,.30)"]]));
+ c.textAlign="center";c.textBaseline="middle";c.shadowColor="#000";c.shadowBlur=10;
+ c.fillStyle="#f6e9d6";c.font="600 27px Georgia,serif";c.fillText(script[index][0],270,751);
+ c.fillStyle="#d9b481";c.font="600 25px Georgia,serif";c.fillText(script[index][1],270,801);
+ c.shadowBlur=0;c.restore();
+}
+function filmOverlay(t){
+ c.save();
+ // Gentle dust/scratches, no flickering flashing effects.
+ for(let i=0;i<50;i++){
+  let xx=h(i+331)*540, yy=(h(i+633)*1010+t*(3+i%4)*2)%960;
+  c.globalAlpha=.04+.025*h(i*17+9);rect(xx,yy,1,2,"#efddc5");
+ }
+ c.globalAlpha=1;
+ let v=c.createRadialGradient(270,440,190,270,470,630);
+ v.addColorStop(0,"rgba(0,0,0,0)");v.addColorStop(1,"rgba(0,0,0,.85)");
+ c.fillStyle=v;c.fillRect(0,0,540,960);
+ c.fillStyle="rgba(214,157,82,.66)";rect(222,99,96,1,"rgba(214,157,82,.44)");
+ c.font="600 14px Georgia,serif";c.textAlign="center";c.textBaseline="middle";
+ c.fillStyle="rgba(209,170,116,.75)";c.fillText("E L   G U A R D I Á N   O S C U R O",270,71);
+ // Intentionally keep bottom 70px free of platform UI and subtitles.
+ c.restore();
+}
+function render(index){
+ const frame=cl(Math.round(index),0,frames-1);
+ const t=frame/fps;
+ const s=Math.min(4,Math.floor(t/5));
+ const u=t-s*5;
+ c.setTransform(W/540,0,0,H/960,0,0);
+ c.clearRect(0,0,540,960);
+ // Crossfade the shot, not just the subtitles.
+ const blend=s>0?sm(u/.46):1;
+ if(s>0&&blend<1){c.save();c.globalAlpha=1-blend;shots[s-1](5,t);c.restore()}
+ c.save();c.globalAlpha=blend;shots[s](u,t);c.restore();
+ storytelling(s,u);filmOverlay(t);
+}
+window.READY=Promise.resolve({frames:frames,fps:fps,width:W,height:H,renderer:"canvas2d",title:"El Guardián Oscuro — versión 2.0, cinco escenas"});
+window.captureFrame=(i,mime="image/png",quality=.95)=>{render(i);return C.toDataURL(mime,quality)};
+render(0);
+</script></body></html>

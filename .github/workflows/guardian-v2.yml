@@ -1,0 +1,65 @@
+name: EL GUARDIAN V2 | Cinco escenas
+on:
+  push:
+    branches: [guardian-v2]
+    paths:
+      - demos/guardian-v2/**
+      - .github/workflows/guardian-v2.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cortometraje-v2:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Descargar codigo
+        uses: actions/checkout@v4
+
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Preparar FFmpeg
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+
+      - name: Garantizar identidad de fotogramas
+        run: |
+          node scripts/capture.mjs --url demos/guardian-v2/film.html --verify --params "w=540&h=960"
+
+      - name: Renderizar pelicula v2
+        run: |
+          mkdir -p renders
+          node scripts/capture.mjs --url demos/guardian-v2/film.html --video renders/guardian-v2-picture.mp4 --params "w=540&h=960" --crf 20 --maxrate 5M
+
+      - name: Generar audio original y mezclar
+        run: |
+          python3 demos/guardian-v2/audio.py renders/guardian-v2-score.wav
+          ffmpeg -hide_banner -loglevel error -y -i renders/guardian-v2-picture.mp4 -i renders/guardian-v2-score.wav -map 0:v:0 -map 1:a:0 -c:v copy -c:a aac -b:a 160k -t 25 -movflags +faststart renders/el-guardian-oscuro-v2.mp4
+          ffmpeg -hide_banner -loglevel error -y -ss 12 -i renders/el-guardian-oscuro-v2.mp4 -frames:v 1 renders/guardian-v2-portada.jpg
+
+      - name: Control de calidad de exportacion
+        run: |
+          ffprobe -v error -show_entries stream=codec_type,codec_name,width,height -show_entries format=duration -of json renders/el-guardian-oscuro-v2.mp4 > renders/technical-report.json
+          python3 -c 'import json; d=json.load(open("renders/technical-report.json")); s=d["streams"]; assert any(x.get("codec_type")=="video" and x.get("codec_name")=="h264" and x.get("width")==540 and x.get("height")==960 for x in s); assert any(x.get("codec_type")=="audio" and x.get("codec_name")=="aac" for x in s); assert 24.8<=float(d["format"]["duration"])<=25.2; print("GUARDIAN V2 MP4 VALIDADO")'
+          echo "Corto V2: 25s, 5 escenas, H264, AAC, 9:16." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Subir video y portada
+        uses: actions/upload-artifact@v4
+        with:
+          name: EL-GUARDIAN-OSCURO-V2
+          path: |
+            renders/el-guardian-oscuro-v2.mp4
+            renders/guardian-v2-portada.jpg
+            renders/technical-report.json
+          retention-days: 7
