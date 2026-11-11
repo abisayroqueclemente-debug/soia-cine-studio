@@ -1,0 +1,83 @@
+{
+  "project": "EL GUARDIÁN OSCURO / La campana sellada",
+  "version": "3.0-preproduction",
+  "status": "art_direction_approved_for_production_not_final_images",
+  "fps": 24,
+  "duration_seconds": 30,
+  "aspect_ratio": "9:16",
+  "master_resolution": {
+    "width": 1080,
+    "height": 1920
+  },
+  "visual_style": "photoreal gothic cinema, sophisticated horror, moonlit cathedral, deep chiaroscuro, natural stone and fabric microtexture, no in-frame text",
+  "character": "A dark pontiff; very tall black mitre with original gold sigils, black mantle embroidered in antique gold, dark ceremonial staff. Face obscured completely by deep shadow; no visible beard or invented physical traits. Vertical black banners with gold sigils.",
+  "scenes": [
+    {
+      "id": "01_bell",
+      "seconds": [
+        0,
+        5
+      ],
+      "title": "La campana",
+      "camera": "slow rising crane shot, gentle dolly in",
+      "visual": "A huge ancient bronze bell swings without human touch in a dark medieval gothic belfry at midnight. Moist stone, narrow shafts of cold blue moonlight, natural dust caught in volumetric light, worn bronze surface, unsettling stillness beyond the moving bell. Composition vertical, center the bell and chain, extra negative space below. Cinematic photorealism.",
+      "character_present": false,
+      "asset_path": "demos/guardian-v3/assets/01_bell.png"
+    },
+    {
+      "id": "02_seal",
+      "seconds": [
+        5,
+        11
+      ],
+      "title": "El sello",
+      "camera": "descending dolly toward the sealed crypt stone",
+      "visual": "A subterranean crypt under the same gothic cathedral. Monolithic sealed tomb of cracked black stone with a single original ancient golden sigil cut into the top. Hairline cracks radiate realistic dim amber light, damp flagstones, candle reflections, stone dust floating in cold air. Dramatic macro-realistic texture, vertical framing, no readable text.",
+      "character_present": false,
+      "asset_path": "demos/guardian-v3/assets/02_seal.png"
+    },
+    {
+      "id": "03_guardian",
+      "seconds": [
+        11,
+        18
+      ],
+      "title": "El Guardián",
+      "camera": "slow cinematic push-in, low three-quarter angle",
+      "visual": "The SAME Dark Pontiff emerges from cathedral shadows at the stone altar, seen in full imposing silhouette: high black mitre adorned with delicate original gold sigils, heavy black velvet mantle with antique golden embroidery, dark ceremonial staff. His face is COMPLETELY concealed in darkness; do not reveal beard, age, skin or identity. Original vertical black banners with gold sigils hang in the distance. Blue moonbeams, candles, drifting mist, true photoreal gothic cinema.",
+      "character_present": true,
+      "asset_path": "demos/guardian-v3/assets/03_guardian.png"
+    },
+    {
+      "id": "04_portal",
+      "seconds": [
+        18,
+        25
+      ],
+      "title": "La apertura",
+      "camera": "front-facing symmetry; door leaves separate from center",
+      "visual": "A monumental double-door at the end of the same dark gothic cathedral cracks open, antique oxidized bronze and black timber with original arcane engravings. Narrow red-orange supernatural light spills into dense ground fog; extinguished candles along both sides; realistic light beams and rough stone reflections. No persons, no words; symmetrical vertical cinematic framing.",
+      "character_present": false,
+      "asset_path": "demos/guardian-v3/assets/04_portal.png"
+    },
+    {
+      "id": "05_eyes",
+      "seconds": [
+        25,
+        30
+      ],
+      "title": "El llamado",
+      "camera": "extreme slow push-in on the hidden gaze",
+      "visual": "Extreme cinematic close-up of the SAME black and gold sigil mitre and hood of the Dark Pontiff. Everything below the brow disappears into profound shadow. Only two subtle golden points of light emerge within the darkness, suggesting eyes; no visible skin, beard or recognizable human face. Fine gold embroidery, floating dust, exquisite chiaroscuro, unnerving stillness, photorealistic shallow depth of field, vertical.",
+      "character_present": true,
+      "asset_path": "demos/guardian-v3/assets/05_eyes.png"
+    }
+  ],
+  "negative_prompt": "infographic, typography, subtitles, UI, captions, logos, watermark, cartoon, illustration, low-poly, cheap CGI, visible human face, beard, age lines, modern church, incoherent costume, extra limbs, low resolution",
+  "requires_approval": [
+    "master_character_reference",
+    "all_scene_assets",
+    "voice"
+  ],
+  "render_status": "not_started"
+}
