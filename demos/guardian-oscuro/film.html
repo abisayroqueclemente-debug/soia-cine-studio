@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>El Guardián Oscuro | La campana sellada</title>
+<style>html,body{margin:0;background:#05060d;overflow:hidden}canvas{display:block;max-width:100vw;max-height:100vh;margin:auto}</style>
+</head>
+<body>
+<canvas id="screen"></canvas>
+<script>
+"use strict";
+// SOIA CINE STUDIO — original, procedural short for El Guardián Oscuro.
+// Every frame is a pure function of its number; no external assets or network.
+const query = new URLSearchParams(location.search);
+const W = Math.max(180, Math.min(1080, Number(query.get("w")) || 540));
+const H = Math.max(320, Math.min(1920, Number(query.get("h")) || 960));
+const FPS = 24, DURATION = 20, FRAMES = FPS * DURATION;
+const canvas = document.getElementById("screen");
+canvas.width = W; canvas.height = H;
+const g = canvas.getContext("2d",{alpha:false});
+const TAU = Math.PI * 2;
+const clamp = (v,a=0,b=1) => Math.max(a,Math.min(b,v));
+const smooth = v => { const q=clamp(v); return q*q*(3-2*q); };
+const hash = n => { const v=Math.sin(n*127.1+13.37)*43758.5453;return v-Math.floor(v); };
+function flash(t,c,w) {let d=(t-c)/w;return Math.exp(-d*d);}
+function path(points) { g.beginPath();g.moveTo(points[0][0],points[0][1]);for(let i=1;i<points.length;i++)g.lineTo(points[i][0],points[i][1]);g.closePath(); }
+function arch(cx,top,width,height) {
+  const l=cx-width/2,r=cx+width/2,b=top+height;
+  g.beginPath();g.moveTo(l,b);g.lineTo(l,top+height*.32);
+  g.quadraticCurveTo(l+width*.05,top+height*.12,cx,top);
+  g.quadraticCurveTo(r-width*.05,top+height*.12,r,top+height*.32);
+  g.lineTo(r,b);g.closePath();
+}
+function ellipseGlow(x,y,rx,ry,c0,c1) {
+  g.save();g.translate(x,y);g.scale(rx,ry);
+  const r=g.createRadialGradient(0,0,.08,0,0,1);
+  r.addColorStop(0,c0);r.addColorStop(1,c1);
+  g.fillStyle=r;g.beginPath();g.arc(0,0,1,0,TAU);g.fill();g.restore();
+}
+function background(t) {
+  const bg=g.createLinearGradient(0,0,0,960);
+  bg.addColorStop(0,"#070b1b");bg.addColorStop(.48,"#0b1224");
+  bg.addColorStop(.82,"#15121d");bg.addColorStop(1,"#05070d");
+  g.fillStyle=bg;g.fillRect(0,0,540,960);
+  ellipseGlow(270,425,260,430,"rgba(51,77,112,.40)","rgba(10,10,22,0)");
+  // Long nave, masonry and central portal; drawn in perspective.
+  g.fillStyle="#0a0d16";
+  path([[0,0],[122,0],[89,750],[0,960]]);g.fill();
+  path([[418,0],[540,0],[540,960],[451,750]]);g.fill();
+  for(let side of [-1,1]) {
+    const x=side<0?0:540;
+    const c=side<0?74:466;
+    const stone=g.createLinearGradient(x,0,c,0);
+    stone.addColorStop(0,"#141827");stone.addColorStop(1,"#050911");
+    g.fillStyle=stone;g.fillRect(side<0?0:470,0,70,960);
+    for(let i=0;i<10;i++) {
+      const y=90+i*95;
+      g.strokeStyle="rgba(165,145,117,.065)";
+      g.lineWidth=2;g.beginPath();
+      g.moveTo(side<0?0:470,y);g.lineTo(side<0?72:540,y+8);g.stroke();
+    }
+    g.fillStyle="#111422";g.fillRect(side<0?62:465,180,15,690);
+    g.strokeStyle="rgba(178,135,76,.18)";g.lineWidth=2;
+    g.beginPath();g.moveTo(side<0?76:464,164);g.lineTo(side<0?76:464,805);g.stroke();
+  }
+  // Vaulted ceiling ribs.
+  g.lineWidth=13;g.strokeStyle="#0c101c";
+  for(let i=0;i<3;i++) {
+    const y=95+i*147;
+    g.beginPath();g.moveTo(0,y+160);g.bezierCurveTo(95,y+5,178,y-45,270,y-55);
+    g.bezierCurveTo(361,y-45,445,y+5,540,y+160);g.stroke();
+    g.lineWidth=1.5;g.strokeStyle="rgba(179,145,96,.13)";
+    g.beginPath();g.moveTo(0,y+151);g.bezierCurveTo(95,y+2,178,y-40,270,y-51);
+    g.bezierCurveTo(362,y-40,445,y+2,540,y+151);g.stroke();
+    g.lineWidth=13;g.strokeStyle="#0c101c";
+  }
+  // A sealed central arch.
+  arch(270,267,240,505);g.fillStyle="#050811";g.fill();
+  g.strokeStyle="rgba(173,130,69,.34)";g.lineWidth=11;g.stroke();
+  arch(270,285,206,490);g.strokeStyle="rgba(97,125,151,.24)";g.lineWidth=2;g.stroke();
+  for(let i=0;i<13;i++) {
+    const yy=383+i*30;
+    g.strokeStyle="rgba(167,144,110,.085)";
+    g.lineWidth=1;g.beginPath();g.moveTo(168,yy);g.lineTo(372,yy);g.stroke();
+  }
+  // Distant gothic windows.
+  for(let side of [-1,1]) {
+    const x=side<0?131:409;
+    arch(x,348,66,286);
+    g.fillStyle="#091725";g.fill();
+    g.strokeStyle="rgba(190,144,74,.29)";g.lineWidth=5;g.stroke();
+    g.strokeStyle="rgba(172,128,79,.21)";g.lineWidth=2;
+    g.beginPath();g.moveTo(x,405);g.lineTo(x,622);
+    g.moveTo(x-28,475);g.lineTo(x+28,475);
+    g.moveTo(x-26,542);g.lineTo(x+26,542);g.stroke();
+    ellipseGlow(x,511,50,190,"rgba(38,92,122,.22)","rgba(2,8,17,0)");
+  }
+  // Rose window behind the pontiff.
+  g.save();g.translate(270,409);
+  const pulse=1+.016*Math.sin(t*1.3);
+  g.scale(pulse,pulse);
+  ellipseGlow(0,0,132,132,"rgba(187,111,48,.21)","rgba(138,62,31,0)");
+  g.strokeStyle="rgba(218,166,90,.58)";g.lineWidth=3;
+  g.beginPath();g.arc(0,0,86,0,TAU);g.stroke();
+  g.strokeStyle="rgba(168,132,79,.33)";
+  for(let k=0;k<12;k++) {
+    const a=k*TAU/12+t*.008;
+    g.beginPath();g.moveTo(Math.cos(a)*17,Math.sin(a)*17);
+    g.lineTo(Math.cos(a)*84,Math.sin(a)*84);g.stroke();
+    g.beginPath();g.arc(Math.cos(a)*58,Math.sin(a)*58,15,0,TAU);g.stroke();
+  }
+  g.strokeStyle="rgba(223,177,96,.50)";
+  g.beginPath();g.arc(0,0,24,0,TAU);g.stroke();
+  g.restore();
+  // Floor converges into the far altar.
+  const floor=g.createLinearGradient(0,695,0,960);
+  floor.addColorStop(0,"#131320");floor.addColorStop(1,"#07080e");
+  g.fillStyle=floor;path([[160,709],[380,709],[540,960],[0,960]]);g.fill();
+  g.lineWidth=1.3;g.strokeStyle="rgba(184,140,82,.10)";
+  for(let i=-4;i<=4;i++) {g.beginPath();g.moveTo(270+i*20,711);g.lineTo(270+i*84,960);g.stroke();}
+  for(let j=0;j<4;j++) {
+    const y=763+j*j*25;g.beginPath();g.moveTo(0,y);g.lineTo(540,y);g.stroke();
+  }
+}
+function candle(x,y,t,index) {
+  const extinguish = index===3 ? smooth((t-13.15)/.3) : index===2 ? smooth((t-11.9)/.28) : 1;
+  const lit=1-extinguish;
+  g.save();g.translate(x,y);
+  // Holder, wax and small wick.
+  g.fillStyle="#17151a";g.fillRect(-7,-35,14,56);
+  g.fillStyle="#ab9679";g.fillRect(-4,-70,8,37);
+  g.fillStyle="#1d1720";g.fillRect(-1,-73,2,6);
+  g.strokeStyle="rgba(194,147,80,.35)";g.lineWidth=1;
+  g.beginPath();g.moveTo(0,-33);g.lineTo(0,17);g.stroke();
+  if(lit>0.001){
+    const jitter=Math.sin(t*13+index*2)*2+Math.sin(t*27+index)*1.2;
+    ellipseGlow(jitter,-79,31*lit,65*lit,"rgba(255,154,60,.29)","rgba(255,154,60,0)");
+    g.fillStyle="rgba(255,188,79,"+lit+")";
+    g.beginPath();g.moveTo(jitter,-68);g.quadraticCurveTo(jitter-10,-81,jitter*.5,-98);
+    g.quadraticCurveTo(jitter+10,-86,jitter+5,-70);g.closePath();g.fill();
+    g.fillStyle="rgba(255,245,180,"+lit+")";g.beginPath();g.ellipse(jitter,-76,2.2,9,0,0,TAU);g.fill();
+  }
+  if(index===3 && t>=13) {
+    const a=Math.max(0,1-(t-13)/2.5);
+    g.strokeStyle="rgba(180,189,202,"+(a*.24)+")";
+    g.lineWidth=4;g.beginPath();g.moveTo(0,-73);
+    g.bezierCurveTo(12,-100, -14+Math.sin(t)*7,-127,5,-156);g.stroke();
+  }
+  g.restore();
+}
+function garment(t) {
+  const sway=2.1*Math.sin(.65*t);
+  g.save();g.translate(sway,0);
+  // A faint aureole and trailing shadows.
+  ellipseGlow(270,626,180,270,"rgba(154,87,31,.14)","rgba(7,6,10,0)");
+  const cape=g.createLinearGradient(150,580,380,965);
+  cape.addColorStop(0,"#10121c");cape.addColorStop(.5,"#090a12");cape.addColorStop(1,"#1b1019");
+  g.fillStyle=cape;
+  g.beginPath();g.moveTo(227,561);g.quadraticCurveTo(179,578,167,650);
+  g.bezierCurveTo(142,750,136,863,107,970);g.lineTo(433,970);
+  g.bezierCurveTo(404,864,393,733,370,647);
+  g.quadraticCurveTo(354,576,311,561);g.closePath();g.fill();
+  // Deep sculpted folds.
+  g.strokeStyle="rgba(75,67,72,.31)";g.lineWidth=14;
+  for(let d of [-1,1]){g.beginPath();g.moveTo(270+d*44,609);g.quadraticCurveTo(270+d*68,778,270+d*124,960);g.stroke();}
+  // Golden embroidered borders.
+  g.lineWidth=3.4;g.strokeStyle="#806342";
+  g.beginPath();g.moveTo(206,588);g.bezierCurveTo(169,715,167,835,151,944);
+  g.moveTo(334,588);g.bezierCurveTo(372,715,373,835,389,944);g.stroke();
+  g.lineWidth=1.2;g.strokeStyle="rgba(232,175,91,.76)";
+  g.beginPath();g.moveTo(209,589);g.bezierCurveTo(173,717,174,838,159,947);
+  g.moveTo(331,589);g.bezierCurveTo(367,717,366,838,381,947);g.stroke();
+  // Inner stole, small golden runes.
+  g.fillStyle="#14101a";
+  path([[252,593],[269,594],[264,926],[242,939]]);g.fill();
+  path([[271,594],[288,593],[299,939],[276,926]]);g.fill();
+  g.strokeStyle="rgba(198,150,73,.63)";g.lineWidth=1.3;
+  for(let j=0;j<8;j++){
+    const y=648+j*37;
+    for(let x of [251,286]) {
+      g.beginPath();g.moveTo(x-4,y-7);g.lineTo(x+4,y);g.lineTo(x-4,y+7);g.stroke();
+    }
+  }
+  // Neck and face sunk into darkness.
+  g.fillStyle="#06070c";g.beginPath();g.ellipse(270,553,40,61,0,0,TAU);g.fill();
+  ellipseGlow(270,550,52,82,"rgba(40,28,27,.30)","rgba(0,0,0,0)");
+  // Distinctive high black mitre of the dark pontiff.
+  const mitre=g.createLinearGradient(216,412,326,562);
+  mitre.addColorStop(0,"#20202b");mitre.addColorStop(.48,"#0b0c16");mitre.addColorStop(1,"#14111d");
+  g.fillStyle=mitre;
+  g.beginPath();g.moveTo(234,539);g.quadraticCurveTo(212,484,225,447);
+  g.lineTo(270,378);g.lineTo(315,447);g.quadraticCurveTo(328,484,306,539);
+  g.quadraticCurveTo(270,563,234,539);g.closePath();g.fill();
+  g.strokeStyle="#c09354";g.lineWidth=3.5;g.stroke();
+  g.strokeStyle="rgba(235,179,88,.63)";g.lineWidth=1.4;
+  g.beginPath();g.moveTo(270,396);g.lineTo(270,530);g.moveTo(240,481);g.lineTo(300,481);g.stroke();
+  // Mitre sigil.
+  g.strokeStyle="#e2a75c";g.lineWidth=2.4;
+  g.beginPath();g.moveTo(270,426);g.lineTo(270,455);g.moveTo(258,440);g.lineTo(282,440);g.stroke();
+  g.fillStyle="#ddaa68";
+  g.beginPath();g.arc(270,414,3.5,0,TAU);g.fill();
+  // The face is never revealed; eyes appear only for the ending.
+  const awake=smooth((t-16.3)/1.2);
+  if(awake>0){
+    ellipseGlow(258,544,13,7,"rgba(255,196,99,"+(awake*.45)+")","rgba(255,160,50,0)");
+    ellipseGlow(282,544,13,7,"rgba(255,196,99,"+(awake*.45)+")","rgba(255,160,50,0)");
+    g.fillStyle="rgba(255,193,104,"+(awake*.85)+")";
+    g.fillRect(252,542,10,2);g.fillRect(278,542,10,2);
+  }
+  // Crozier / ceremonial staff on the right, worked in bronze.
+  g.strokeStyle="#755a36";g.lineWidth=8;g.beginPath();g.moveTo(368,949);g.lineTo(361,555);g.stroke();
+  g.strokeStyle="#d1a260";g.lineWidth=2.4;g.beginPath();g.moveTo(367,947);g.lineTo(359,554);g.stroke();
+  g.strokeStyle="rgba(224,180,107,.85)";g.lineWidth=5;
+  g.beginPath();g.arc(357,534,25,-1.1,Math.PI*1.55);g.stroke();
+  g.beginPath();g.arc(357,535,10,-1.1,Math.PI*.95);g.stroke();
+  g.fillStyle="#c5944b";g.beginPath();g.arc(357,534,4,0,TAU);g.fill();
+  // The sleeve and gloved hand hold the staff.
+  g.fillStyle="#12111a";g.beginPath();g.ellipse(341,691,30,42,-.18,0,TAU);g.fill();
+  g.fillStyle="#231c20";g.beginPath();g.ellipse(355,692,13,18,.3,0,TAU);g.fill();
+  g.strokeStyle="rgba(217,165,85,.48)";g.lineWidth=2;
+  g.beginPath();g.moveTo(313,713);g.lineTo(356,721);g.stroke();
+  g.restore();
+}
+function atmosphere(t) {
+  // Gold motes drift with deterministic formulas, no random frame changes.
+  for(let j=0;j<63;j++){
+    const q=hash(j+1),r=hash(j+200),z=.3+hash(j+400)*1.5;
+    const x= (q*590-25+Math.sin(t*.34+j*3)*19*z+540)%540;
+    const y= (r*1180+960-t*15*z)%960;
+    const intensity=.17+(.38*Math.max(0,Math.sin(j*4+t*.8)));
+    g.fillStyle="rgba(232,163,92,"+intensity+")";
+    g.beginPath();g.arc(x,y, .42+z*.65,0,TAU);g.fill();
+  }
+  // Drifting low fog; variable transforms create apparent depth.
+  for(let i=0;i<5;i++){
+    const x=70+i*115+Math.sin(t*.34+i*2.1)*58;
+    const y=778+i*37+Math.cos(t*.35+i)*13;
+    ellipseGlow(x,y,190,68,"rgba(129,142,151,.075)","rgba(38,44,58,0)");
+  }
+  const flicker=flash(t,.25,.15)*.27+flash(t,4.1,.12)*.24+
+                flash(t,12.5,.10)*.32+flash(t,17.1,.10)*.48;
+  if(flicker>0.001){g.fillStyle="rgba(218,197,148,"+flicker+")";g.fillRect(0,0,540,960);}
+  // Film-edge vignette, composed deterministically.
+  const v=g.createRadialGradient(270,440,160,270,480,610);
+  v.addColorStop(0,"rgba(0,0,0,0)");v.addColorStop(1,"rgba(0,0,0,.82)");
+  g.fillStyle=v;g.fillRect(0,0,540,960);
+}
+function tracked(text,y,size,space) {
+  g.font="600 "+size+"px Georgia, 'Times New Roman', serif";
+  let total=0;
+  for(const ch of text)total+=g.measureText(ch).width+space;
+  let x=(540-total+space)/2;
+  for(const ch of text){
+    g.fillText(ch,x,y);
+    x+=g.measureText(ch).width+space;
+  }
+}
+const phrases=[
+  {from:0,to:4.0,a:"LA CAMPANA SONÓ",b:"DESDE UNA TUMBA SELLADA."},
+  {from:4.0,to:8.1,a:"EL GUARDIÁN CONOCÍA",b:"AQUEL SONIDO."},
+  {from:8.1,to:12.8,a:"NO ERA UNA ADVERTENCIA.",b:"ERA UNA INVITACIÓN."},
+  {from:12.8,to:16.9,a:"LA ÚLTIMA VELA SE APAGÓ.",b:"Y LA PUERTA RESPONDIÓ."},
+  {from:16.9,to:20,a:"¿TÚ HABRÍAS ENTRADO?",b:"EL GUARDIÁN OSCURO"}
+];
+function typography(t) {
+  // Cinematic top mask, separate from the scene's camera transform.
+  const mask=g.createLinearGradient(0,0,0,300);
+  mask.addColorStop(0,"rgba(3,5,12,.94)");
+  mask.addColorStop(.75,"rgba(5,7,14,.54)");
+  mask.addColorStop(1,"rgba(5,7,14,0)");
+  g.fillStyle=mask;g.fillRect(0,0,540,300);
+  for(const scene of phrases){
+    if(t<scene.from || t>=scene.to)continue;
+    const fade=smooth((t-scene.from)/.32)*smooth((scene.to-t)/.32);
+    const yoff=(1-smooth((t-scene.from)/.8))*9;
+    g.save();g.globalAlpha=fade;g.textAlign="left";g.textBaseline="middle";
+    g.shadowColor="#000";g.shadowBlur=12;g.shadowOffsetY=2;
+    g.fillStyle="#f9edd9";
+    const font=scene.a.length>23?24:29;
+    tracked(scene.a,143+yoff,font,.4);
+    g.shadowBlur=8;
+    g.fillStyle=scene.from===16.9?"#dfb579":"#cbab79";
+    tracked(scene.b,192+yoff,scene.b.length>22?19:22,.5);
+    g.restore();
+  }
+  // Ornate divider and unobtrusive signature in TikTok-safe area.
+  g.fillStyle="rgba(187,136,74,.78)";
+  g.fillRect(205,236,130,1);
+  g.fillStyle="#b08b5e";
+  g.beginPath();g.moveTo(270,231);g.lineTo(276,236.5);g.lineTo(270,242);g.lineTo(264,236.5);g.closePath();g.fill();
+  g.globalAlpha=.73;g.textAlign="center";g.textBaseline="alphabetic";
+  g.fillStyle="#b89b70";g.font="600 15px Georgia, serif";
+  g.fillText("EL GUARDIÁN OSCURO",270,901);
+  g.fillStyle="#807367";g.font="11px Georgia, serif";
+  g.fillText("UN RELATO ORIGINAL",270,925);
+  g.globalAlpha=1;
+}
+function renderFrame(index) {
+  const frame=Math.max(0,Math.min(FRAMES-1,Math.round(index)));
+  const t=frame/FPS;
+  g.setTransform(W/540,0,0,H/960,0,0);
+  g.clearRect(0,0,540,960);
+  g.save();
+  const push=1+.09*smooth(t/DURATION);
+  g.translate(270,566);
+  g.scale(push,push);g.translate(-270,-566);
+  background(t);
+  // Upper carvings and clustered candles around the altar.
+  candle(141,754,t,0);candle(185,747,t,1);
+  candle(381,754,t,2);candle(416,749,t,3);
+  garment(t);
+  atmosphere(t);
+  g.restore();
+  typography(t);
+}
+window.READY=Promise.resolve({
+  width:W,height:H,fps:FPS,frames:FRAMES,renderer:"canvas2d",
+  title:"El Guardián Oscuro — La campana sellada"
+});
+window.captureFrame=(frame,mime="image/png",quality=.95)=>{
+  renderFrame(frame);return canvas.toDataURL(mime,quality);
+};
+renderFrame(0);
+</script>
+</body>
+</html>
