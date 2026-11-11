@@ -1,0 +1,50 @@
+name: SOIA | Narrador neural sin creditos
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [guardian-voz-neural]
+    paths:
+      - demos/guardian-v3/neural_voice.py
+      - .github/workflows/guardian-neural-voice.yml
+
+permissions:
+  contents: read
+
+jobs:
+  producir-narracion:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Obtener proyecto
+        uses: actions/checkout@v4
+      - name: Preparar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Instalar FFmpeg
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+      - name: Instalar motor de voz neuronal sin clave API
+        run: |
+          python3 -m pip install --disable-pip-version-check edge-tts
+      - name: Generar cinco frases en español mexicano
+        run: |
+          python3 demos/guardian-v3/neural_voice.py --output renders/guardian-narracion-neural.wav --voice es-MX-JorgeNeural
+      - name: Validar audio
+        run: |
+          test -s renders/guardian-narracion-neural.wav
+          test -s renders/guardian-narracion-neural.mp3
+          ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1 renders/guardian-narracion-neural.wav | tee renders/duracion.txt
+          python3 -c 'import subprocess; d=float(subprocess.check_output(["ffprobe","-v","error","-show_entries","format=duration","-of","default=noprint_wrappers=1:nokey=1","renders/guardian-narracion-neural.wav"]).strip()); assert 29.9<d<30.1, d; print("Narracion: 30 segundos validados")'
+      - name: Publicar narracion descargable
+        uses: actions/upload-artifact@v4
+        with:
+          name: Guardian-Voz-Neural-Espanol-MX
+          path: |
+            renders/guardian-narracion-neural.wav
+            renders/guardian-narracion-neural.mp3
+            renders/guion-y-tiempos.json
+            renders/duracion.txt
+          retention-days: 7
