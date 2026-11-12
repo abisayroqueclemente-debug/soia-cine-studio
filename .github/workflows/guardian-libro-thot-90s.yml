@@ -1,0 +1,50 @@
+name: EL GUARDIAN OSCURO | Libro de Thot (1m30s)
+on:
+  push:
+    branches: [guardian-libro-thot-90s]
+    paths:
+      - demos/guardian-ep02/**
+      - .github/workflows/guardian-libro-thot-90s.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  episodio-02:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - name: Descargar proyecto
+        uses: actions/checkout@v4
+      - name: Preparar Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Instalar FFmpeg
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+      - name: Instalar motor y arte cinematografico
+        run: |
+          python3 -m pip install --disable-pip-version-check numpy pillow edge-tts
+      - name: Producir 10 escenas, narracion, efectos y MP4
+        run: |
+          python3 demos/guardian-ep02/produce.py
+      - name: Verificar entregable 90 segundos
+        run: |
+          test -s renders/guardian-thot-90s/EL_GUARDIAN_OSCURO_02_EL_LIBRO_DE_THOT_90S.mp4
+          test -s renders/guardian-thot-90s/narracion_solamente.wav
+          test -s renders/guardian-thot-90s/PORTADA.jpg
+          python3 -c 'import json; a=json.load(open("renders/guardian-thot-90s/reporte_tecnico.json")); assert abs(float(a["format"]["duration"])-90)<.15; print("EP02 verificado 90 segundos")'
+          echo "90 segundos, 720x1280, 24 FPS, 10 escenas, voz neuronal MX y sonido original. Historia adaptada con separación entre leyenda y realidad." >> "$GITHUB_STEP_SUMMARY"
+      - name: Publicar cortometraje descargable
+        uses: actions/upload-artifact@v4
+        with:
+          name: GUARDIAN-EP02-LIBRO-DE-THOT-90S
+          path: |
+            renders/guardian-thot-90s/EL_GUARDIAN_OSCURO_02_EL_LIBRO_DE_THOT_90S.mp4
+            renders/guardian-thot-90s/PORTADA.jpg
+            renders/guardian-thot-90s/GUION_Y_FUENTES.md
+            renders/guardian-thot-90s/reporte_tecnico.json
+            renders/guardian-thot-90s/voice_timing.json
+            renders/guardian-thot-90s/image_sources.json
+          retention-days: 7
